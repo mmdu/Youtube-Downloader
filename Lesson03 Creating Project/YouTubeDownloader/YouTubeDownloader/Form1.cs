@@ -37,8 +37,15 @@ namespace YouTubeDownloader
         private void btnDownload_Click(object sender, EventArgs e)
         {
 
-            Tuple<bool, string> isLinkGood = ValidateLink();
-            MessageBox.Show("Is it good link ?" + isLinkGood.Item1 + "Link is : " + isLinkGood.Item2);
+            Tuple<bool, string> isLinkGood = ValidateLink();  // get link validation results
+            if (true == isLinkGood.Item1)
+            {
+                restrictAccessability();
+                // pass the validated link into the download mthod
+                // so it can be assigned to a property in the youtubue  vidieo model object 
+                MessageBox.Show("Is it good link ?  :  " + isLinkGood.Item1 + " ;  Link is : " + isLinkGood.Item2);
+
+            }
 
 
 
@@ -154,10 +161,26 @@ namespace YouTubeDownloader
 
         }
 
+        private void restrictAccessability()
+        {
+            btnDownload.Enabled = false;
+            cboFileType.Enabled = false;
+            btnDownloadFolder.Enabled = false;
+            txtDownloadFolder.Enabled = false;
+            txtLink.Enabled = false;
+
+        }
+
         private Tuple<bool, string> ValidateLink()
         {
             string normalURL;
-            if(DownloadUrlResolver.TryNormalizeYoutubeUrl(txtLink.Text,out normalURL))
+            if (!Directory.Exists(txtDownloadFolder.Text))
+            {
+                MessageBox.Show("please enter a valid folder.");  // block runs when folder not fould
+                return Tuple.Create(false, "bad fold path ");
+
+            }
+            else if(DownloadUrlResolver.TryNormalizeYoutubeUrl(txtLink.Text,out normalURL))
             {
                 return Tuple.Create(true, normalURL); // return true and acutla link if succesfull
 
@@ -165,7 +188,7 @@ namespace YouTubeDownloader
             else
             {
                 MessageBox.Show("Please enter a valid youtube link ");
-                return Tuple.Create(false, "");
+                return Tuple.Create(false, "not a valid link "); // return false bad link if link isnot good
             }
         }
     }
