@@ -41,6 +41,8 @@ namespace YouTubeDownloader
             if (true == isLinkGood.Item1)
             {
                 restrictAccessability();
+                System.Threading.Thread.Sleep(6000);
+                EnableAccessability();
                 // pass the validated link into the download mthod
                 // so it can be assigned to a property in the youtubue  vidieo model object 
                 MessageBox.Show("Is it good link ?  :  " + isLinkGood.Item1 + " ;  Link is : " + isLinkGood.Item2);
@@ -158,6 +160,17 @@ namespace YouTubeDownloader
             //       }
 
             // Our test youtube link
+
+        }
+
+        private void EnableAccessability()
+        {
+            lblFileName.Text = "";// clear file name lable 
+            txtLink.Text = ""; // clear link from link text box 
+            btnDownload.Enabled = true; // enable the donwload buttton 
+            btnDownloadFolder.Enabled = true; // enable to choose folders
+            cboFileType.Enabled = true; // enable combo box 
+            pgDownload.Value = 0; // zero out progress bar 
 
         }
 
