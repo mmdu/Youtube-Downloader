@@ -5,10 +5,12 @@ using System.Data;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Runtime.Remoting.Channels;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
 using YoutubeExtractor;
+using System.Diagnostics;
 
 namespace YouTubeDownloader
 {
@@ -19,8 +21,8 @@ namespace YouTubeDownloader
         public frmYTDownloader()
         {
             InitializeComponent();
-            cboFileType.SelectedIndex = 0; // set video as first choice 
-            // line below gets path to mydocuments
+            cboFileType.SelectedIndex = 0; // set video as first choice  Combo
+            //  gets path to mydocuments
             string folder = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
             // set the path of browser dialog box 
             folderBrowserDialog1.SelectedPath = folder;
@@ -29,7 +31,7 @@ namespace YouTubeDownloader
 
         private void btnDownloadFolder_Click(object sender, EventArgs e)
         {
-            DialogResult result = folderBrowserDialog1.ShowDialog();
+            DialogResult result = folderBrowserDialog1.ShowDialog();  //  cannot seen , need check 
             if (result == DialogResult.OK)
                 txtDownloadFolder.Text = folderBrowserDialog1.SelectedPath;
         }
@@ -40,12 +42,13 @@ namespace YouTubeDownloader
             Tuple<bool, string> isLinkGood = ValidateLink();  // get link validation results
             if (true == isLinkGood.Item1)
             {
-                restrictAccessability();
-                System.Threading.Thread.Sleep(6000);
-                EnableAccessability();
-                // pass the validated link into the download mthod
-                // so it can be assigned to a property in the youtubue  vidieo model object 
-                MessageBox.Show("Is it good link ?  :  " + isLinkGood.Item1 + " ;  Link is : " + isLinkGood.Item2);
+                RestrictAccessability();  // call this to ensure controls not working during download 
+                Download(isLinkGood.Item2);
+                //System.Threading.Thread.Sleep(6000);
+                //EnableAccessability();
+                //// pass the validated link into the download mthod
+                //// so it can be assigned to a property in the youtubue  vidieo model object 
+                //MessageBox.Show("Is it good link ?  :  " + isLinkGood.Item1 + " ;  Link is : " + isLinkGood.Item2);
 
             }
 
@@ -163,6 +166,73 @@ namespace YouTubeDownloader
 
         }
 
+        private void Download(string validatedLink )
+        {
+            if (cboFileType.SelectedIndex == 0)
+            {
+                YouTubeVideoModel   videoDownloader  = new YouTubeVideoModel();   // set  video downloader object, 
+                videoDownloader.Link = validatedLink;
+                videoDownloader.FolderPath = txtDownloadFolder.Text;
+                DownloadVideo(videoDownloader);
+            }
+            else
+            {
+                YouTubeAudioModel audioDownloader =new YouTubeAudioModel();
+                audioDownloader.Link = validatedLink;
+                audioDownloader.FolderPath = txtDownloadFolder.Text;
+           //     DownloadAudio(audioDownloader);
+            }
+        }
+
+        private void DownloadVideo(YouTubeVideoModel videoDownloader)
+        {
+            try
+            {
+
+                videoDownloader.VideoInfo = FileDownloader.GetVideoInfos((videoDownloader));   // store video info object  common part , list , in model 
+                videoDownloader.Video = FileDownloader.GetVideoInfo(videoDownloader); // store  only videoinfo object in model 
+                UpdateLabel(videoDownloader.Video.Title + videoDownloader.Video.VideoExtension);  // chang lable tname 
+
+                videoDownloader.FilePath = FileDownloader.GetPath(videoDownloader); // store filpath in model 
+                videoDownloader.FilePath += videoDownloader.Video.VideoExtension;    // store filepath extension from youtube extracter  in model 
+                videoDownloader.VideoDownloaderType = FileDownloader.GetVideoDownloader(videoDownloader);
+
+                videoDownloader.VideoDownloaderType.DownloadFinished += (sender, args) => EnableAccessability();   // Enable button when download complete 
+                videoDownloader.VideoDownloaderType.DownloadFinished +=(sender,args) => OpenFolder(videoDownloader.FilePath);   // open folder with download file selected 
+                videoDownloader.VideoDownloaderType.DownloadProgressChanged +=
+                    (sender, args) => pgDownload.Value = (int )args.ProgressPercentage;
+
+                CheckForIllegalCrossThreadCalls = false;
+                //donload video 
+                FileDownloader.DownloadVideo(videoDownloader);
+            }
+            catch (Exception )
+            {
+                MessageBox.Show("Download Cancelled");
+                EnableAccessability();
+
+            }
+        }
+
+        private void UpdateLabel(string titleandExtension)
+        {
+            lblFileName.Text = titleandExtension;
+        }
+
+        private void OpenFolder(string filePath)
+        {
+            string argument = " /select, \" " + filePath.Length + "\"";
+            if (chkOpenAfterDownload.Checked == true)
+            {
+                Process.Start("explorer.exe", argument);
+            }
+        }
+
+        private void VideoDownloaderType_DownloadFinished(object sender, EventArgs e)
+        {
+            throw new NotImplementedException();
+        }
+
         private void EnableAccessability()
         {
             lblFileName.Text = "";// clear file name lable 
@@ -174,7 +244,7 @@ namespace YouTubeDownloader
 
         }
 
-        private void restrictAccessability()
+        private void RestrictAccessability()
         {
             btnDownload.Enabled = false;
             cboFileType.Enabled = false;
@@ -204,5 +274,6 @@ namespace YouTubeDownloader
                 return Tuple.Create(false, "not a valid link "); // return false bad link if link isnot good
             }
         }
+
     }
 }
